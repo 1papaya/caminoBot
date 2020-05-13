@@ -60,13 +60,17 @@ const updateLoc = new WizardScene(
 
     ctx.reply(
       "What collection?",
-      Markup.keyboard(state.collections.map((col) => Markup.button(col)))
+      Markup.keyboard(
+        state.collections.map(col => {
+          return Markup.button(col);
+        })
+      )
     );
     return ctx.wizard.next();
   },
   // Validate collection name
   (ctx) => {
-    if (ctx.wizard.state.collections.includes(ctx.message.text))
+    if (!ctx.wizard.state.collections.includes(ctx.message.text))
       ctx.wizard.back();
     else ctx.wizard.next();
 
