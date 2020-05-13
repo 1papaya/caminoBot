@@ -1,0 +1,16 @@
+{
+  "name": "geodaveybot",
+  "version": "0.0.1",
+  "description": "Telegram bot for geodavey.us",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "faunadb": "^2.14.1",
+    "netlify-lambda": "^1.6.3",
+    "telegraf": "^3.38.0"
+  }
+}
