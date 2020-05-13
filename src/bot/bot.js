@@ -49,7 +49,7 @@ const updateLoc = new WizardScene(
   },
   // Validate location name
   (ctx) => {
-    ctx.wizard.state.loc_name = ctx.message.text.trim();
+    ctx.wizard.state.name = ctx.message.text.trim();
 
     ctx.wizard.next();
     return ctx.wizard.steps[ctx.wizard.cursor](ctx);
@@ -64,7 +64,7 @@ const updateLoc = new WizardScene(
         state.collections.map(col => {
           return Markup.button(col);
         })
-      )
+      ).oneTime().extra()
     );
     return ctx.wizard.next();
   },
@@ -84,7 +84,7 @@ const updateLoc = new WizardScene(
     ctx.reply(
       `Is this OK?\n` +
         `LOC: ${state.longitude}, ${state.latitude}\n` +
-        `NAM: ${state.loc_name}\n` +
+        `NAM: ${state.name}\n` +
         `COL: ${state.collection}`,
       Markup.keyboard([Markup.button("Yes"), Markup.button("No")])
         .oneTime()
@@ -104,7 +104,7 @@ const updateLoc = new WizardScene(
           data: {
             longitude: state.longitude,
             latitude: state.latitude,
-            loc_name: state.loc_name,
+            name: state.name,
           },
         })
       )
@@ -155,7 +155,7 @@ exports.handler = async (event, context, callback) => {
     await bot.handleUpdate(body);
     callback(null, {
       statusCode: 200,
-      body: "",
+      body: "woot!",
     });
   } catch (e) {
     callback(e, {
