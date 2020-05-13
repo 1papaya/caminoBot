@@ -17,6 +17,9 @@ const updateLoc = new WizardScene(
   "update_loc",
   // Ask for location
   (ctx) => {
+    // List of collections to be added to
+    ctx.wizard.state.collections = ["now", "pyrenees"];
+
     // Only allow to be updated from admin chat
     if (
       parseInt(ctx.message.chat.id) ===
@@ -51,14 +54,34 @@ const updateLoc = new WizardScene(
     ctx.wizard.next();
     return ctx.wizard.steps[ctx.wizard.cursor](ctx);
   },
+  // Ask for collection
+  (ctx) => {
+    let state = ctx.wizard.state;
+
+    ctx.reply(
+      "What collection?",
+      Markup.keyboard(state.collections.map((col) => Markup.button(col)))
+    );
+    return ctx.wizard.next();
+  },
+  // Validate collection name
+  (ctx) => {
+    if (ctx.wizard.state.collections.includes(ctx.message.text))
+      ctx.wizard.back();
+    else ctx.wizard.next();
+
+    return ctx.wizard.steps[ctx.wizard.cursor](ctx);
+  },
   // Ask for verification
   (ctx) => {
+    ctx.wizard.state.collection = ctx.message.text;
     let state = ctx.wizard.state;
 
     ctx.reply(
       `Is this OK?\n` +
         `LOC: ${state.longitude}, ${state.latitude}\n` +
-        `NAM: ${state.loc_name}`,
+        `NAM: ${state.loc_name}\n` +
+        `COL: ${state.collection}`,
       Markup.keyboard([Markup.button("Yes"), Markup.button("No")])
         .oneTime()
         .extra()
@@ -68,11 +91,19 @@ const updateLoc = new WizardScene(
   },
   // Handle full form response
   (ctx) => {
-    let state = ctx.wizard.state; // { longitude, latitude, loc_name }
+    let state = ctx.wizard.state;
 
     if (ctx.message.text == "Yes") {
       // Add to FaunaDB
-      db.query(q.Create(q.Collection("now"), { data: state }))
+      db.query(
+        q.Create(q.Collection(state.collection), {
+          data: {
+            longitude: state.longitude,
+            latitude: state.latitude,
+            loc_name: state.loc_name,
+          },
+        })
+      )
         .then((resp) => {
           console.log(resp);
           console.dir(resp);
@@ -129,4 +160,3 @@ exports.handler = async (event, context, callback) => {
     });
   }
 };
-
