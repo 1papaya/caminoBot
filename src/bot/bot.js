@@ -105,6 +105,7 @@ const updateLoc = new WizardScene(
             longitude: state.longitude,
             latitude: state.latitude,
             name: state.name,
+            timestamp: q.Now()
           },
         })
       )
