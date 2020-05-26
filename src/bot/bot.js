@@ -4,155 +4,87 @@ const Markup = require("telegraf/markup");
 const session = require("telegraf/session");
 const faunadb = require("faunadb"),
   q = faunadb.query;
+const turfHelpers = require("@turf/helpers");
 const WizardScene = require("telegraf/scenes/wizard");
 
 const db = new faunadb.Client({ secret: process.env.FAUNA_SECRET_KEY });
 const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN);
 
-//
-// update Loc
-//
+const postcard = new WizardScene(
+  "postcard",
+  async (ctx) => {
+    console.log(ctx);
+    let picId = ctx.message.photo[ctx.message.photo.length - 1].file_id;
+    console.log(picId);
 
-const updateLoc = new WizardScene(
-  "update_loc",
-  // Ask for location
-  (ctx) => {
-    // List of collections to be added to
-    ctx.wizard.state.collections = ["now", "pyrenees"];
+    let info = await bot.telegram.getFileLink(picId);
 
-    // Only allow to be updated from admin chat
-    if (
-      parseInt(ctx.message.chat.id) ===
-      parseInt(process.env.TELEGRAM_ADMIN_CHATID)
-    ) {
-      ctx.reply("Where ya at?");
-      return ctx.wizard.next();
-    } else {
-      ctx.reply("Sorry bud, admins only!");
+    console.log(info);
+    return ctx.scene.leave();
+
+      
+
+
+
+    return ctx.wizard.next();
+  },
+  async (ctx) => {
+    if (!("location" in ctx.message)) {
+      ctx.reply("Error: Postcard must be followed by location");
       return ctx.scene.leave();
     }
-  },
-  // Validate location
-  (ctx) => {
-    if (typeof ctx.message.location === "undefined") ctx.wizard.back();
-    else ctx.wizard.next();
 
-    return ctx.wizard.steps[ctx.wizard.cursor](ctx);
-  },
-  // Ask for location name
-  (ctx) => {
     ctx.wizard.state.longitude = ctx.message.location.longitude;
     ctx.wizard.state.latitude = ctx.message.location.latitude;
 
-    ctx.reply("What is the location name?");
-    return ctx.wizard.next();
-  },
-  // Validate location name
-  (ctx) => {
-    ctx.wizard.state.name = ctx.message.text.trim();
+    // (a) get last postcard record
 
-    ctx.wizard.next();
-    return ctx.wizard.steps[ctx.wizard.cursor](ctx);
-  },
-  // Ask for collection
-  (ctx) => {
-    let state = ctx.wizard.state;
-
-    ctx.reply(
-      "What collection?",
-      Markup.keyboard(
-        state.collections.map(col => {
-          return Markup.button(col);
-        })
-      ).oneTime().extra()
-    );
-    return ctx.wizard.next();
-  },
-  // Validate collection name
-  (ctx) => {
-    if (!ctx.wizard.state.collections.includes(ctx.message.text))
-      ctx.wizard.back();
-    else ctx.wizard.next();
-
-    return ctx.wizard.steps[ctx.wizard.cursor](ctx);
-  },
-  // Ask for verification
-  (ctx) => {
-    ctx.wizard.state.collection = ctx.message.text;
-    let state = ctx.wizard.state;
-
-    ctx.reply(
-      `Is this OK?\n` +
-        `LOC: ${state.longitude}, ${state.latitude}\n` +
-        `NAM: ${state.name}\n` +
-        `COL: ${state.collection}`,
-      Markup.keyboard([Markup.button("Yes"), Markup.button("No")])
-        .oneTime()
-        .extra()
-    );
-
-    return ctx.wizard.next();
-  },
-  // Handle full form response
-  (ctx) => {
-    let state = ctx.wizard.state;
-
-    if (ctx.message.text == "Yes") {
-      // Add to FaunaDB
-      db.query(
-        q.Create(q.Collection(state.collection), {
-          data: {
-            longitude: state.longitude,
-            latitude: state.latitude,
-            name: state.name,
-            timestamp: q.Now()
-          },
-        })
-      )
-        .then((resp) => {
-          console.log(resp);
-          console.dir(resp);
-        })
-        .catch((err) => {
-          ctx.reply("Error! Sorry, bud");
-          return ctx.scene.leave();
-        });
-
-      // Trigger rebuild
-
-      ctx.reply("Saved!");
-      console.log(state);
-    } else {
-      ctx.reply("(discarded)");
-    }
-
-    return ctx.scene.leave();
+    // (1) upload photo to cloudinary
+    // (2)
   }
 );
 
 // Initialize bot with session & stage middleware
-const stage = new Stage([updateLoc]);
+const stage = new Stage([postcard]);
+
+bot.command("skobuffs", (ctx) => {
+  ctx.reply("sko buffs!");
+});
 
 bot.use(session());
 bot.use(stage.middleware());
 
-// Add commands
-bot.start((ctx) => {
-  ctx.reply(`Bienvenidos al geodaveyBot!`);
-});
+bot.on("message", async (ctx) => {
+  let msg = ctx.update.message;
 
-bot.command("update_loc", (ctx) => {
-  ctx.scene.enter("update_loc");
-});
+  // don't process commands here
+  if (("text" in msg) && msg.text.substr(0,1) === "/") return;
+  // if a photo is sent not in a context, it's postcard update
+  else if ("photo" in msg) ctx.scene.enter("postcard");
+  // if a location is sent in no context, it's waypoint update
+  else if ("location" in msg) {
+    let { longitude, latitude } = msg.location;
 
-bot.command("chat_id", (ctx) => {
-  ctx.reply(`Chat ID: ${ctx.update.message.chat.id}`);
+    db.query(
+      q.Create(q.Collection("hrpWaypoints"), {
+        data: turfHelpers.point([longitude, latitude]),
+      })
+    )
+      .then((resp) => {
+        ctx.reply(`Updated: ${longitude}, ${latitude}`);
+      })
+      .catch((err) => {
+        ctx.reply(`Error: ${err}`);
+      });
+  }
 });
 
 // Netlify process webhook from Telegram API
 exports.handler = async (event, context, callback) => {
+  let body = JSON.parse(event.body);
+  console.log(JSON.stringify(body, null, 2));
+
   try {
-    let body = event.body == "" ? {} : JSON.parse(event.body);
     await bot.handleUpdate(body);
     callback(null, {
       statusCode: 200,
