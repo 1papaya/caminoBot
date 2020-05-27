@@ -17,11 +17,11 @@ const WizardScene = require("telegraf/scenes/wizard");
 const db = new faunadb.Client({ secret: process.env.FAUNA_SECRET_KEY });
 const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN);
 
-
-
 //
 // Commands
 //
+
+bot.use(session());
 
 bot.start((ctx) => {
   ctx.reply(
@@ -33,7 +33,6 @@ bot.start((ctx) => {
     ].join("\n")
   );
 });
-
 
 bot.command("skobuffs", (ctx) => {
   ctx.reply("sko buffs!");
@@ -48,47 +47,45 @@ bot.command("whereami", (ctx) => {});
 // Process update
 //
 
-const update = new WizardScene(
-  "update",
-  (ctx) => {
-    ctx.reply("skoooo!!!");
-    return ctx.scene.leave();
-  },
-  // Capture photo info
-  async (ctx) => {
-    let msg = ctx.message;
-
-    // last pic in photo array is highest resolution
-    ctx.wizard.state.photo_id = msg.photo[msg.photo.length - 1].file_id;
-    ctx.wizard.state.caption = msg.caption;
-
-    return ctx.wizard.next();
-  },
-  // Capture location info
-  async (ctx) => {
-    if (!("location" in ctx.message)) {
-      ctx.reply("Error: Postcard must be followed by location");
+const updateStage = new Stage([
+  new WizardScene(
+    "update",
+    (ctx) => {
+      ctx.reply("skoooo!!!");
       return ctx.scene.leave();
+    },
+    // Capture photo info
+    async (ctx) => {
+      let msg = ctx.message;
+
+      // last pic in photo array is highest resolution
+      ctx.wizard.state.photo_id = msg.photo[msg.photo.length - 1].file_id;
+      ctx.wizard.state.caption = msg.caption;
+
+      return ctx.wizard.next();
+    },
+    // Capture location info
+    async (ctx) => {
+      if (!("location" in ctx.message)) {
+        ctx.reply("Error: Postcard must be followed by location");
+        return ctx.scene.leave();
+      }
+
+      ctx.wizard.state.longitude = ctx.message.location.longitude;
+      ctx.wizard.state.latitude = ctx.message.location.latitude;
+
+      return ctx.wizard.next();
+    },
+    // Process full update
+    async (ctx) => {
+      let updateInfo = ctx.wizard.state;
+
+      let picLink = await bot.telegram.getFileLink(updateInfo.photo_id);
     }
+  ),
+]);
 
-    ctx.wizard.state.longitude = ctx.message.location.longitude;
-    ctx.wizard.state.latitude = ctx.message.location.latitude;
-
-    return ctx.wizard.next();
-  },
-  // Process full update
-  async (ctx) => {
-    let updateInfo = ctx.wizard.state;
-
-    let picLink = await bot.telegram.getFileLink(updateInfo.photo_id);
-  }
-);
-
-// Initialize bot with session & stage middleware
-const stage = new Stage([update]);
-
-bot.use(session());
-bot.use(stage.middleware());
+bot.use(updateStage.middleware());
 
 //
 // Process updates & waypoints
