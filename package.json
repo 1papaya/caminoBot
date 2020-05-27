@@ -4,6 +4,7 @@
   "description": "Telegram bot for geodavey.us",
   "main": "index.js",
   "scripts": {
+    "develop": "netlify dev --live",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
