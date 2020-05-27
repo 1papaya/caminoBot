@@ -11,6 +11,7 @@
   "license": "MIT",
   "dependencies": {
     "@turf/helpers": "^6.1.4",
+    "cloudinary": "^1.21.0",
     "faunadb": "^2.14.1",
     "netlify-lambda": "^1.6.3",
     "telegraf": "^3.38.0"
