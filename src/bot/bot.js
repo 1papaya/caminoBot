@@ -29,14 +29,7 @@ const db = require("./db");
 bot.use(session());
 
 bot.start((ctx) => {
-  ctx.reply(
-    [
-      "Bienvenidos!",
-      "",
-      "/subscribe",
-      "/unsubscribe",
-    ].join("\n")
-  );
+  ctx.reply(["Bienvenidos!", "", "/subscribe", "/unsubscribe"].join("\n"));
 });
 
 bot.command("skobuffs", (ctx) => {
@@ -82,10 +75,7 @@ bot.command("test", (ctx) => {
   ctx.reply(
     "Confirm?",
     Markup.inlineKeyboard([
-      [
-        Markup.callbackButton("No", "No"),
-        Markup.callbackButton("Yes", "No"),
-      ],
+      [Markup.callbackButton("No", "No"), Markup.callbackButton("Yes", "No")],
     ])
       .resize()
       .extra()
@@ -113,6 +103,7 @@ const updateStage = new Stage([
     //
     // Capture photo info
     async (ctx) => {
+      console.log("scene1");
       // last pic in photo array is highest resolution
       ctx.wizard.state.photo_id =
         ctx.message.photo[ctx.message.photo.length - 1].file_id;
@@ -123,6 +114,7 @@ const updateStage = new Stage([
     //
     // Capture location info
     async (ctx) => {
+      console.log("scene2");
       if (!("location" in ctx.message)) {
         ctx.reply("Error: Update photo must be followed by location");
         return ctx.scene.leave();
@@ -136,14 +128,16 @@ const updateStage = new Stage([
     //
     // Calculate new route and ask for confirmation
     async (ctx) => {
+      console.log("scene3");
       let state = ctx.wizard.state;
 
-      // get la
       state.newUpdate = turfHelpers.point([state.longitude, state.latitude]);
       state.prevUpdate = await db.getPrevUpdate();
 
-      if (prevUpdate) {
-        state.waypoints = await db.getAllWaypointsAfterTime(prevUpdate.ts);
+      if (state.prevUpdate) {
+        state.waypoints = await db.getAllWaypointsAfterTime(
+          state.prevUpdate.ts
+        );
         state.route = await ors.calcHikingRoute(
           state.prevUpdate.data,
           state.newUpdate,
@@ -151,7 +145,7 @@ const updateStage = new Stage([
         );
 
         ctx.reply(
-          "Confirm?",
+          [`${state.route.properties.distance}m`, `Confirm?`].join("/n"),
           Markup.inlineKeyboard([
             Markup.callbackButton("No", "discard"),
             Markup.callbackButton("Yes", "confirm"),
@@ -168,7 +162,7 @@ const updateStage = new Stage([
     //
     // Upload photo, update & track
     async (ctx) => {
-      if ( !("callback_query" in ctx) ) {
+      if (!("callback_query" in ctx)) {
         ctx.reply("Invalid response");
         return ctx.scene.leave();
       }
@@ -222,7 +216,7 @@ bot.use(updateStage.middleware());
 
 bot.on("message", async (ctx) => {
   let msg = ctx.update.message;
-  
+
   //console.log("ctx.scene", ctx.scene);
   //console.log("ctx.scene.scenes", ctx.scene.scenes);
 
