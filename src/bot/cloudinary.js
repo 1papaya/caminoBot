@@ -7,7 +7,7 @@ cloudinary.config({
 });
 
 module.exports = {
-  uploadPhoto: async (photoURL, photoId) => {
+  uploadPhoto: async (photoURL) => {
     return new Promise((res, rej) => {
       cloudinary.uploader.upload(
         photoURL,
@@ -16,8 +16,6 @@ module.exports = {
           timeout: 8675309,
         },
         (err, result) => {
-          console.log(result);
-
           if (err) {
             console.log(`${err.message || err}`);
             rej(err);

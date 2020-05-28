@@ -1,5 +1,6 @@
 const Telegraf = require("telegraf");
 const Stage = require("telegraf/stage");
+const Markup = require("telegraf/markup");
 const session = require("telegraf/session");
 const faunadb = require("faunadb"),
   q = faunadb.query;
@@ -14,8 +15,11 @@ const WizardScene = require("telegraf/scenes/wizard");
 //   OPENROUTESERVICE_KEY
 //
 
-const cloud = require("./cloudinary");
+// TODO error handling on ORS requests
+
 const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN);
+const cloud = require("./cloudinary");
+const ors = require("./ors");
 const db = require("./db");
 
 //
@@ -29,8 +33,8 @@ bot.start((ctx) => {
     [
       "Bienvenidos!",
       "",
-      "/subscribe - subscribe to updates",
-      "/unsubscribe - unsubscribe",
+      "/subscribe",
+      "/unsubscribe",
     ].join("\n")
   );
 });
@@ -56,7 +60,7 @@ bot.command("subscribe", (ctx) => {
             `${subscriber.first_name} ${subscriber.last_name} (${subscriber.username}) has subscribed!`
           );
 
-          ctx.reply(`Thank you for subscribing! <3\nBe in touch soon.`);
+          ctx.reply(`Thank you for subscribing! <3\nBe in touch!`);
         }
       );
   });
@@ -73,25 +77,107 @@ bot.command("unsubscribe", (ctx) => {
     else ctx.reply("You haven't subscribed yet!");
   });
 });
-bot.command("whereami", (ctx) => {});
+
+bot.command("test", (ctx) => {
+  ctx.reply(
+    "Confirm?",
+    Markup.inlineKeyboard([
+      [
+        Markup.callbackButton("No", "No"),
+        Markup.callbackButton("Yes", "No"),
+      ],
+    ])
+      .resize()
+      .extra()
+  );
+});
+bot.command("test2", async (ctx) => {
+  longitude = -15.81628;
+  latitude = 28.004107;
+
+  let prevUpdate = await db.getPrevUpdate();
+  let waypoints = await db.getAllWaypointsAfterTime(prevUpdate.ts);
+  let newUpdate = turfHelpers.point([longitude, latitude]);
+
+  let route = await ors.calcHikingRoute(prevUpdate.data, newUpdate, waypoints);
+  console.log(route);
+});
 
 //
-// Process update
+// Process Update
 //
 
 const updateStage = new Stage([
   new WizardScene(
     "update",
+    //
     // Capture photo info
     async (ctx) => {
-      console.log("scene1");
-      let msg = ctx.message;
-
       // last pic in photo array is highest resolution
-      ctx.wizard.state.photo_id = msg.photo[msg.photo.length - 1].file_id;
-      ctx.wizard.state.caption = msg.caption;
+      ctx.wizard.state.photo_id =
+        ctx.message.photo[ctx.message.photo.length - 1].file_id;
+      ctx.wizard.state.caption = ctx.message.caption;
 
+      return ctx.wizard.next();
+    },
+    //
+    // Capture location info
+    async (ctx) => {
+      if (!("location" in ctx.message)) {
+        ctx.reply("Error: Update photo must be followed by location");
+        return ctx.scene.leave();
+      }
+
+      ctx.wizard.state.longitude = ctx.message.location.longitude;
+      ctx.wizard.state.latitude = ctx.message.location.latitude;
+
+      return ctx.wizard.next();
+    },
+    //
+    // Calculate new route and ask for confirmation
+    async (ctx) => {
       let state = ctx.wizard.state;
+
+      // get la
+      state.newUpdate = turfHelpers.point([state.longitude, state.latitude]);
+      state.prevUpdate = await db.getPrevUpdate();
+
+      if (prevUpdate) {
+        state.waypoints = await db.getAllWaypointsAfterTime(prevUpdate.ts);
+        state.route = await ors.calcHikingRoute(
+          state.prevUpdate.data,
+          state.newUpdate,
+          state.waypoints
+        );
+
+        ctx.reply(
+          "Confirm?",
+          Markup.inlineKeyboard([
+            Markup.callbackButton("No", "discard"),
+            Markup.callbackButton("Yes", "confirm"),
+          ])
+            .oneTime()
+            .extra()
+        );
+
+        return ctx.wizard.next();
+      } else {
+        // first update !
+      }
+    },
+    //
+    // Upload photo, update & track
+    async (ctx) => {
+      if ( !("callback_query" in ctx) ) {
+        ctx.reply("Invalid response");
+        return ctx.scene.leave();
+      }
+
+      ctx.reply(JSON.stringify(ctx));
+      // TODO ctx.answerCbQUery();
+      // TODO delete keyboard ::)
+
+      let choice = ctx.callback_query.data; // discard/confirm
 
       // (1) Get photo and upload it to Cloudinary
       let tempPicLink = await bot.telegram.getFileLink(state.photo_id);
@@ -114,7 +200,7 @@ const updateStage = new Stage([
               prevUpdate.ts
             );
           }),
-          // (4b) Update all subscribers with my location
+          // (4b) Update all subscriber
           db.getAllSubscribers().then((subscribers) => {
             console.log(subscribers);
           }),
@@ -124,39 +210,6 @@ const updateStage = new Stage([
       });
 
       return ctx.scene.leave();
-      //return ctx.wizard.next();
-    },
-    // Capture location info
-    async (ctx) => {
-      console.log("scene2");
-      if (!("location" in ctx.message)) {
-        ctx.reply("Error: Update photo must be followed by location");
-        return ctx.scene.leave();
-      }
-
-      ctx.wizard.state.longitude = ctx.message.location.longitude;
-      ctx.wizard.state.latitude = ctx.message.location.latitude;
-
-      return ctx.wizard.next();
-    },
-    // Process full update
-    async (ctx) => {
-      console.log("scene3");
-      let updateInfo = ctx.wizard.state;
-      ctx.reply(
-        `${updateInfo.longitude} ${updateInfo.latitude} ${updateInfo.photo_id}`
-      );
-
-      return ctx.scene.leave();
-
-      // Two threads: Update subscribers, Update website
-      // Promise.resolveAll([ Promise1, Promise2 ])
-
-      let newUpdate = await ex.addToCollection("updates", feat);
-      let prevUpdate = await ex.getUpdateBeforeRef(newUpdate.ref);
-      let unsortWaypoints = await ex.getAllWaypointsAfterTime(prevUpdate.ts);
-
-      let picLink = await bot.telegram.getFileLink(updateInfo.photo_id);
     }
   ),
 ]);
@@ -169,6 +222,9 @@ bot.use(updateStage.middleware());
 
 bot.on("message", async (ctx) => {
   let msg = ctx.update.message;
+  
+  //console.log("ctx.scene", ctx.scene);
+  //console.log("ctx.scene.scenes", ctx.scene.scenes);
 
   // don't process commands here
   if ("text" in msg && msg.text.substr(0, 1) === "/") return;
@@ -189,7 +245,7 @@ bot.on("message", async (ctx) => {
         .then(() => {
           ctx.reply(`Added ${longitude}, ${latitude}`);
         })
-        .error((err) => {
+        .catch((err) => {
           ctx.reply(`Error: ${err.message || err}`);
         });
     }
@@ -202,7 +258,7 @@ bot.on("message", async (ctx) => {
 
 exports.handler = async (event, context, callback) => {
   let body = JSON.parse(event.body);
-  console.log(JSON.stringify(body, null, 2));
+  console.log(body);
 
   try {
     await bot.handleUpdate(body);

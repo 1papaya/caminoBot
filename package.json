@@ -14,6 +14,8 @@
     "cloudinary": "^1.21.0",
     "faunadb": "^2.14.1",
     "netlify-lambda": "^1.6.3",
+    "openrouteservice-js": "^0.1.8",
+    "request": "^2.88.2",
     "telegraf": "^3.38.0"
   }
 }

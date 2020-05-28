@@ -27,7 +27,7 @@ module.exports = {
         )
       )
         .then((resp) => {
-          // get array of GeoJSON features
+          // return array of GeoJSON features
           let afterWaypoints = resp.data
             .filter((wp) => {
               return wp.ts >= afterTime;
@@ -73,29 +73,22 @@ module.exports = {
       db.query(q.Delete(ref)).then(res).catch(rej);
     });
   },
-  getUpdateBeforeRef: async (beforeRef) => {
-    // Return the previous update
+  getPrevUpdate: async () => {
     return new Promise((res, rej) => {
       db.query(
         q.Map(
           q.Paginate(q.Documents(q.Collection("updates")), {
-            size: 1,
-            before: [beforeRef],
+            size: inf_,
           }),
           q.Lambda((ref) => q.Get(ref))
         )
-      )
-        .then((resp) => {
-          res(resp.data[0]);
-        })
-        .catch((err) => {
-          // if there is no last update...
-          if (err.message === "instance not found") res(false);
-          else {
-            console.log("getUpdateBefore Error", err);
-            rej(err);
-          }
-        });
+      ).then((resp) => {
+        // if is first update, return false
+        if (resp.data.length === 0)
+          res(false);
+        else
+          res(resp.data[resp.data.length -1]);
+      });
     });
-  },
+  }
 };
