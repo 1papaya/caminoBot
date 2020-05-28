@@ -123,7 +123,8 @@ const updateStage = new Stage([
       ctx.wizard.state.longitude = ctx.message.location.longitude;
       ctx.wizard.state.latitude = ctx.message.location.latitude;
 
-      return ctx.wizard.next();
+      ctx.wizard.next();
+      return ctx.wizard.steps[ctx.wizard.cursor](ctx);
     },
     //
     // Calculate new route and ask for confirmation
