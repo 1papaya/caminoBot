@@ -163,6 +163,7 @@ const updateStage = new Stage([
     //
     // Upload photo, update & track
     async (ctx) => {
+      console.log(ctx);
       if (!("callback_query" in ctx)) {
         ctx.reply("Invalid response");
         return ctx.scene.leave();
