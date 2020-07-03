@@ -9,7 +9,7 @@ var Directions = new openrouteservice.Directions({
   api_key: process.env.OPENROUTESERVICE_KEY,
 });
 
-let simplifyTrack = (feat) => turfSimplify(feat, {tolerance: 0.0001});
+let simplifyTrack = (feat) => turfSimplify(feat, {tolerance: 0.00025});
 
 module.exports = {
   // openrouteservice-js doesn't yet support optimization API :(
