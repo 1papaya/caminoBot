@@ -1,5 +1,6 @@
 require("dotenv").config();
 
+const request = require("request");
 const Telegraf = require("telegraf");
 const rp = require("request-promise");
 const Stage = require("telegraf/stage");
@@ -16,9 +17,8 @@ const WizardScene = require("telegraf/scenes/wizard");
 //   TELEGRAM_BOT_TOKEN
 //   TELEGRAM_ADMIN_CHATID
 //   OPENROUTESERVICE_KEY
+//   NETLIFY_BUILD_HOOK
 //
-
-// TODO error handling on ORS requests
 
 const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN);
 const cloud = require("./cloudinary");
@@ -35,6 +35,16 @@ bot.start((ctx) => {
   ctx.reply(["Bienvenidos a geoDaveyBot!"].join("\n"));
 });
 
+bot.command("build", (ctx) => {
+  if (
+    parseInt(ctx.message.chat.id) ===
+    parseInt(process.env.TELEGRAM_ADMIN_CHATID)
+  )
+    request.post(process.env.NETLIFY_BUILD_HOOK, () => {
+      ctx.reply("Build Triggered!");
+    });
+});
+
 bot.command("skobuffs", (ctx) => {
   ctx.reply("sko buffs!");
 });
@@ -44,7 +54,7 @@ bot.command("chatid", (ctx) => {
 });
 
 //
-// Process Update
+// Process Photo/Location Update
 //
 
 const updateStage = new Stage([
@@ -111,7 +121,7 @@ const updateStage = new Stage([
 
         ors
           .calcHikingRoute(prevUpdate.data, newUpdate, waypoints)
-          .then(route => {
+          .then((route) => {
             db.addToCollection("tracks", route).then(() => {
               ctx.reply("Added Update Track!");
               return ctx.scene.leave();
