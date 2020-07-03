@@ -3,3 +3,8 @@
   publish = "/public/"
   functions = "src/"
   command = "netlify-lambda install"
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200

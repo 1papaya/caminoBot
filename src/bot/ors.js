@@ -1,3 +1,5 @@
+require("dotenv").config();
+
 const openrouteservice = require("openrouteservice-js");
 const turfHelpers = require("@turf/helpers");
 const request = require("request");
@@ -10,6 +12,13 @@ module.exports = {
   // openrouteservice-js doesn't yet support optimization API :(
   calcOptimalWaypoints: async (start, end, waypoints) => {
     return new Promise((res, rej) => {
+      // if no waypoints, no optimization needed
+      if (waypoints.length == 0) {
+        res([start.geometry.coordinates, end.geometry.coordinates]);
+        return;
+      }
+
+      // build optimization query
       let optimizationReq = {
         jobs: waypoints.map((wp, idx) => {
           return { id: idx, location: wp.geometry.coordinates };
@@ -24,6 +33,7 @@ module.exports = {
         ],
       };
 
+      // query api
       request(
         {
           method: "POST",
@@ -35,14 +45,15 @@ module.exports = {
             "Content-Type": "application/json; charset=utf-8",
           },
         },
-        (error, response, body) => {
-          // TODO error handling
+        (error, response, bodyRaw) => {
+          let body = JSON.parse(bodyRaw);
 
-          let wayptArray = JSON.parse(body).routes[0].steps.map(
-            (s) => s.location
-          );
-
-          res(wayptArray);
+          if (error || "error" in body) rej(`Error: ${body.error}`);
+          else {
+            if ("routes" in body && "steps" in body.routes[0])
+              res(body.routes[0].steps.map((s) => s.location));
+            else rej("Error: Invalid optimalWaypoints response");
+          }
         }
       );
     });
@@ -59,7 +70,7 @@ module.exports = {
             elevation: true,
             format: "geojson",
           })
-            .then(function (json) {
+            .then((json) => {
               let feat = json.features[0];
 
               let hikingRoute = turfHelpers.feature(feat.geometry, {
@@ -71,8 +82,32 @@ module.exports = {
 
               res(hikingRoute);
             })
-            .catch(function (err) {
-              // TODO error handling !
+            .catch((err) => {
+              rej(err);
+            });
+        })
+        .catch(() => {
+          console.log(start);
+          console.log(end);
+          Directions.calculate({
+            coordinates: [start.geometry.coordinates, end.geometry.coordinates],
+            profile: "foot-hiking",
+            elevation: true,
+            format: "geojson",
+          })
+            .then((json) => {
+              let feat = json.features[0];
+
+              let hikingRoute = turfHelpers.feature(feat.geometry, {
+                ascent: feat.properties.ascent,
+                descent: feat.properties.descent,
+                distance: feat.properties.summary.distance,
+                duration: feat.properties.summary.duration,
+              });
+
+              res(hikingRoute);
+            })
+            .catch((err) => {
               rej(err);
             });
         });

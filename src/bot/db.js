@@ -1,3 +1,4 @@
+require('dotenv').config();
 const faunadb = require("faunadb"),
   q = faunadb.query;
 
@@ -39,7 +40,6 @@ module.exports = {
           res(afterWaypoints);
         })
         .catch((err) => {
-          console.log(err);
           rej(err);
         });
     });
