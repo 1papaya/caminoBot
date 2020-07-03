@@ -83,7 +83,7 @@ module.exports = {
                 duration: feat.properties.summary.duration,
               });
 
-              res(simplifyTrack(hikingRoute.features[0]));
+              res(simplifyTrack(hikingRoute));
             })
             .catch((err) => {
               rej(err);
@@ -109,7 +109,7 @@ module.exports = {
                 duration: feat.properties.summary.duration,
               });
 
-              res(simplifyTrack(hikingRoute.features[0]));
+              res(simplifyTrack(hikingRoute));
             })
             .catch((err) => {
               rej(err);
