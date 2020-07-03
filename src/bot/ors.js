@@ -9,7 +9,7 @@ var Directions = new openrouteservice.Directions({
   api_key: process.env.OPENROUTESERVICE_KEY,
 });
 
-let simplifyTrack = (feat) => turfSimplify(feat, {options: 0.0001});
+let simplifyTrack = (feat) => turfSimplify(feat, {tolerance: 0.0001});
 
 module.exports = {
   // openrouteservice-js doesn't yet support optimization API :(
@@ -83,7 +83,7 @@ module.exports = {
                 duration: feat.properties.summary.duration,
               });
 
-              res(simplifyTrack(hikingRoute));
+              res(simplifyTrack(hikingRoute.features[0]));
             })
             .catch((err) => {
               rej(err);
@@ -109,7 +109,7 @@ module.exports = {
                 duration: feat.properties.summary.duration,
               });
 
-              res(simplifyTrack(hikingRoute));
+              res(simplifyTrack(hikingRoute.features[0]));
             })
             .catch((err) => {
               rej(err);
