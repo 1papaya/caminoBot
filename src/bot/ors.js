@@ -1,12 +1,15 @@
 require("dotenv").config();
 
 const openrouteservice = require("openrouteservice-js");
+const turfSimplify = require("@turf/simplify");
 const turfHelpers = require("@turf/helpers");
 const request = require("request");
 
 var Directions = new openrouteservice.Directions({
   api_key: process.env.OPENROUTESERVICE_KEY,
 });
+
+let simplifyTrack = (feat) => turfSimplify(feat, 0.00025);
 
 module.exports = {
   // openrouteservice-js doesn't yet support optimization API :(
@@ -80,12 +83,13 @@ module.exports = {
                 duration: feat.properties.summary.duration,
               });
 
-              res(hikingRoute);
+              res(simplifyTrack(hikingRoute));
             })
             .catch((err) => {
               rej(err);
             });
         })
+        // if optimal waypoints calculation breaks, just calculate from start to end
         .catch(() => {
           console.log(start);
           console.log(end);
@@ -105,7 +109,7 @@ module.exports = {
                 duration: feat.properties.summary.duration,
               });
 
-              res(hikingRoute);
+              res(simplifyTrack(hikingRoute));
             })
             .catch((err) => {
               rej(err);
