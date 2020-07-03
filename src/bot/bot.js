@@ -103,6 +103,7 @@ const updateStage = new Stage([
 
       // Get prev update from database
       let prevUpdate = await db.getPrevUpdate();
+      if (!prevUpdate) return ctx.scene.leave();
 
       // If there is a previous update, calculate a route
       if (prevUpdate) {
@@ -117,10 +118,12 @@ const updateStage = new Stage([
             console.log("route", route);
             db.addToCollection("tracks", route).then(() => {
               ctx.reply("Added Update Track!");
+              return ctx.scene.leave();
             });
           })
           .catch((err) => {
             ctx.reply(`Track Error: ${err.message || err}`);
+            return ctx.scene.leave();
           });
       }
     }
@@ -169,15 +172,14 @@ bot.on("message", async (ctx) => {
 exports.handler = async (event, context, callback) => {
   try {
     let bodyJson = JSON.parse(event.body);
-    
+
     await bot.handleUpdate(bodyJson);
 
     callback(null, {
       statusCode: 200,
       body: "woot!",
     });
-  }
-  catch (e) {
+  } catch (e) {
     callback(e, {
       statusCode: 400,
       body: "error: for bots only",
