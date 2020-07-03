@@ -101,7 +101,7 @@ const updateStage = new Stage([
           ctx.reply(`Update error: ${err.message || err}`);
         });
 
-      // Get prev update from database
+      // Get prev update from database. No need for track if first update
       let prevUpdate = await db.getPrevUpdate();
       if (!prevUpdate) return ctx.scene.leave();
 
@@ -111,7 +111,7 @@ const updateStage = new Stage([
 
         ors
           .calcHikingRoute(prevUpdate.data, newUpdate, waypoints)
-          .then((route) => {
+          .then(route => {
             db.addToCollection("tracks", route).then(() => {
               ctx.reply("Added Update Track!");
               return ctx.scene.leave();
