@@ -110,7 +110,7 @@ const updateStage = new Stage([
 
         ors
           .calcHikingRoute(prevUpdate.data, newUpdate, waypoints)
-          .then(() => {
+          .then((route) => {
             db.addToCollection("tracks", route).then(() => {
               ctx.reply("Added Update Track!");
             });
