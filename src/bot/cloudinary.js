@@ -1,4 +1,4 @@
-require('dotenv').config();
+require("dotenv").config();
 const cloudinary = require("cloudinary").v2;
 
 cloudinary.config({
@@ -17,10 +17,8 @@ module.exports = {
           timeout: 8675309,
         },
         (err, result) => {
-          if (err) {
-            console.log(`${err.message || err}`);
-            rej(err);
-          } else res(result.secure_url);
+          if (err) rej(err);
+          else res(result.secure_url);
         }
       );
     });

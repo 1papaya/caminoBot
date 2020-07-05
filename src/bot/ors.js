@@ -24,7 +24,6 @@ module.exports = {
         format: "geojson",
       })
         .then(json => {
-          console.log("directions json", json);
           let feat = json.features[0];
 
           let hikingRoute = turfHelpers.feature(feat.geometry, {
@@ -37,9 +36,7 @@ module.exports = {
 
           res(turfSimplify(hikingRoute, { tolerance: tolerance }));
         })
-        .catch(err => {
-          rej(err);
-        });
+        .catch(rej);
     });
   },
 };
