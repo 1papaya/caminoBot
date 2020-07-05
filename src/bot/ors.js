@@ -25,6 +25,7 @@ module.exports = {
       })
         .then(json => {
           console.log("directions json", json);
+          let feat = json.features[0];
 
           let hikingRoute = turfHelpers.feature(feat.geometry, {
             ascent: feat.properties.ascent,
