@@ -124,8 +124,28 @@ const updateStage = new Stage([
             });
           })
           .catch((err) => {
+            // If the route isn't able to be calculated somehow
+            // just add a route between the last waypoint and current one
             ctx.reply(`Track Error: ${err.message || err}`);
-            return ctx.scene.leave();
+
+            let prevCoords = prevUpdate.data.geometry.coordinates;
+            let newCoords = newUpdate.geometry.coordinates;
+
+            let route = turfHelpers.feature(
+              turfHelpers.lineString([[prevCoords, newCoords]]),
+              {
+                ascent: null,
+                descent: null,
+                distance: null,
+                duration: null,
+              }
+            );
+
+            db.addToCollection("tracks", route).then(() => {
+              ctx.reply(`Added Simple Route`);
+              
+              return ctx.scene.leave();
+            });
           });
       }
     }
@@ -143,7 +163,7 @@ bot.on("message", async (ctx) => {
 
   // don't process commands here
   if ("text" in msg && msg.text.substr(0, 1) === "/") return;
-  
+
   // only allow waypoints/updates for admin
   if (
     parseInt(ctx.message.chat.id) ===
