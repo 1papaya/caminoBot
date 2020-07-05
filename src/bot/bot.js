@@ -50,21 +50,17 @@ bot.command("deleteLast", (ctx) => {
     let msg = ctx.message.text.split(" ");
     let coll = `${msg[msg.length - 1]}s`;
 
-    db.deleteLast(coll).then((update) => {
-      switch (coll) {
-        case "updates":
-          let msg = update.data.properties.caption;
-          break;
-        case "tracks":
-          let msg = update.data.properties.date;
-          break;
-        case "waypoints":
-          let msg = `${update.data.geometry.coordinates}`;
-          break;
-      }
-      
-      ctx.reply(`Deleted ${coll}: ${msg}`);
-    });
+    db.deleteLast(coll)
+      .then(({ data }) => {
+        let msg = "";
+
+        if (coll == "updates") msg = data.properties.caption;
+        if (coll == "tracks") msg = data.properties.date;
+        if (coll == "waypoints") msg = data.geometry.coordinates;
+
+        ctx.reply(`Deleted ${coll}: ${msg}`);
+      })
+      .catch((err) => ctx.reply(`Deleting Error: ${err.message || err}`));
   }
 });
 
