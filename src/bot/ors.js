@@ -28,6 +28,7 @@ module.exports = {
           let feat = json.features[0];
 
           let hikingRoute = turfHelpers.feature(feat.geometry, {
+            date: new Date().toISOString(),
             ascent: feat.properties.ascent,
             descent: feat.properties.descent,
             distance: feat.properties.summary.distance,

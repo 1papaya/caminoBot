@@ -1,4 +1,4 @@
-require('dotenv').config();
+require("dotenv").config();
 const faunadb = require("faunadb"),
   q = faunadb.query;
 
@@ -44,6 +44,23 @@ module.exports = {
         });
     });
   },
+  deleteLast: async (collection) => {
+    return new Promise((res, rej) => {
+      db.query(
+        q.Map(
+          q.Paginate(q.Documents(q.Collection(collection)), {
+            size: inf_,
+          }),
+          q.Lambda((ref) => q.Get(ref))
+        )
+      )
+        .then((result) => {
+          let last = result.data[result.data.length - 1];
+          db.query(q.Delete(last.ref)).then(res).catch(rej);
+        })
+        .catch(rej);
+    });
+  },
   getSubscribers: async () => {
     return new Promise((res, rej) => {
       db.query(
@@ -84,11 +101,9 @@ module.exports = {
         )
       ).then((resp) => {
         // if is first update, return false
-        if (resp.data.length === 0)
-          res(false);
-        else
-          res(resp.data[resp.data.length -1]);
+        if (resp.data.length === 0) res(false);
+        else res(resp.data[resp.data.length - 1]);
       });
     });
-  }
+  },
 };

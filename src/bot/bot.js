@@ -32,6 +32,7 @@ bot.start((ctx) => {
 });
 
 bot.command("build", (ctx) => {
+  // make sure user is admin to trigger build
   if (
     parseInt(ctx.message.chat.id) ===
     parseInt(process.env.TELEGRAM_ADMIN_CHATID)
@@ -39,6 +40,32 @@ bot.command("build", (ctx) => {
     request.post(process.env.NETLIFY_BUILD_HOOK, () => {
       ctx.reply("Build Triggered!");
     });
+});
+
+bot.command("deleteLast", (ctx) => {
+  if (
+    parseInt(ctx.message.chat.id) ===
+    parseInt(process.env.TELEGRAM_ADMIN_CHATID)
+  ) {
+    let msg = ctx.message.text.split(" ");
+    let coll = `${msg[msg.length - 1]}s`;
+
+    db.deleteLast(coll).then((update) => {
+      switch (coll) {
+        case "updates":
+          let msg = update.data.properties.caption;
+          break;
+        case "tracks":
+          let msg = update.data.properties.date;
+          break;
+        case "waypoints":
+          let msg = `${update.data.geometry.coordinates}`;
+          break;
+      }
+      
+      ctx.reply(`Deleted ${coll}: ${msg}`);
+    });
+  }
 });
 
 bot.command("skobuffs", (ctx) => {
@@ -124,28 +151,8 @@ const updateStage = new Stage([
             });
           })
           .catch((err) => {
-            // If the route isn't able to be calculated somehow
-            // just add a route between the last waypoint and current one
             ctx.reply(`Track Error: ${err.message || err}`);
-
-            let prevCoords = prevUpdate.data.geometry.coordinates;
-            let newCoords = newUpdate.geometry.coordinates;
-
-            let route = turfHelpers.feature(
-              turfHelpers.lineString([[prevCoords, newCoords]]),
-              {
-                ascent: null,
-                descent: null,
-                distance: null,
-                duration: null,
-              }
-            );
-
-            db.addToCollection("tracks", route).then(() => {
-              ctx.reply(`Added Simple Route`);
-              
-              return ctx.scene.leave();
-            });
+            return ctx.scene.leave();
           });
       }
     }
