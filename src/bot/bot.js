@@ -16,6 +16,8 @@ const WizardScene = require("telegraf/scenes/wizard");
 //   NETLIFY_BUILD_HOOK
 //
 
+const isAdmin = (ctx) =>
+  parseInt(ctx.message.chat.id) === parseInt(process.env.TELEGRAM_ADMIN_CHATID);
 const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN);
 const cloud = require("./cloudinary");
 const ors = require("./ors");
@@ -33,20 +35,14 @@ bot.start((ctx) => {
 
 bot.command("build", (ctx) => {
   // make sure user is admin to trigger build
-  if (
-    parseInt(ctx.message.chat.id) ===
-    parseInt(process.env.TELEGRAM_ADMIN_CHATID)
-  )
+  if (isAdmin(ctx))
     request.post(process.env.NETLIFY_BUILD_HOOK, () => {
       ctx.reply("Build Triggered!");
     });
 });
 
 bot.command("deleteLast", (ctx) => {
-  if (
-    parseInt(ctx.message.chat.id) ===
-    parseInt(process.env.TELEGRAM_ADMIN_CHATID)
-  ) {
+  if (isAdmin(ctx)) {
     let msg = ctx.message.text.split(" ");
     let coll = `${msg[msg.length - 1]}s`;
 
@@ -166,10 +162,7 @@ bot.on("message", async (ctx) => {
   if ("text" in msg && msg.text.substr(0, 1) === "/") return;
 
   // only allow waypoints/updates for admin
-  if (
-    parseInt(ctx.message.chat.id) ===
-    parseInt(process.env.TELEGRAM_ADMIN_CHATID)
-  ) {
+  if (isAdmin(ctx)) {
     // if a photo is sent by admin in no context, it's an update
     if ("photo" in msg) ctx.scene.enter("update");
     // if a location is sent in no context, it's waypoint
