@@ -2,12 +2,8 @@ require("dotenv").config();
 
 const request = require("request");
 const Telegraf = require("telegraf");
-const rp = require("request-promise");
 const Stage = require("telegraf/stage");
-const Markup = require("telegraf/markup");
 const session = require("telegraf/session");
-const faunadb = require("faunadb"),
-  q = faunadb.query;
 const turfHelpers = require("@turf/helpers");
 const WizardScene = require("telegraf/scenes/wizard");
 
@@ -102,7 +98,7 @@ const updateStage = new Stage([
         date: new Date().toISOString(),
       });
 
-      // Upload to DB!
+      // Insert update to DB!
       db.addToCollection("updates", newUpdate)
         .then(() => {
           ctx.reply("Added Update!");
@@ -147,8 +143,9 @@ bot.on("message", async (ctx) => {
 
   // don't process commands here
   if ("text" in msg && msg.text.substr(0, 1) === "/") return;
+  
   // only allow waypoints/updates for admin
-  else if (
+  if (
     parseInt(ctx.message.chat.id) ===
     parseInt(process.env.TELEGRAM_ADMIN_CHATID)
   ) {

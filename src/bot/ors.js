@@ -9,7 +9,7 @@ var Directions = new openrouteservice.Directions({
 });
 
 module.exports = {
-  calcHikingRoute: async (start, end, waypoints) => {
+  calcHikingRoute: async (start, end, waypoints, tolerance=0.0001) => {
     let startCoords = start.geometry.coordinates;
     let wayptCoords = waypoints.map(waypt => {
       return waypt.geometry.coordinates;
@@ -34,7 +34,7 @@ module.exports = {
             duration: feat.properties.summary.duration,
           });
 
-          res(turfSimplify(hikingRoute, { tolerance: 0.00025 }));
+          res(turfSimplify(hikingRoute, { tolerance: tolerance }));
         })
         .catch(err => {
           rej(err);
