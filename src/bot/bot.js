@@ -28,7 +28,7 @@ const db = require("./db");
 bot.use(session());
 
 bot.start((ctx) => {
-  ctx.reply(["Bienvenidos a geoDaveyBot!"].join("\n"));
+  ctx.reply("Bienvenidos a caminoBot!");
 });
 
 bot.command("build", (ctx) => {
@@ -82,7 +82,6 @@ const updateStage = new Stage([
     //
     // Capture photo info
     async (ctx) => {
-      console.log("scene1");
       // last pic in photo array is highest resolution
       ctx.wizard.state.photo_id =
         ctx.message.photo[ctx.message.photo.length - 1].file_id;
@@ -93,7 +92,6 @@ const updateStage = new Stage([
     //
     // Capture location info
     async (ctx) => {
-      console.log("scene2");
       if (!("location" in ctx.message)) {
         ctx.reply("Error: Update photo must be followed by location");
         return ctx.scene.leave();
@@ -179,7 +177,7 @@ bot.on("message", async (ctx) => {
       let { longitude, latitude } = msg.location;
       let wayFeature = turfHelpers.point([longitude, latitude]);
 
-      // add waypoints to DB
+      // add waypoint to DB
       db.addToCollection("waypoints", wayFeature)
         .then(() => {
           ctx.reply(`Added ${longitude}, ${latitude}`);
