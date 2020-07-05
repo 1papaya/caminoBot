@@ -55,8 +55,12 @@ module.exports = {
         )
       )
         .then((result) => {
-          let last = result.data[result.data.length - 1];
-          db.query(q.Delete(last.ref)).then(res).catch(rej);
+          if (result.data.length == 0)
+            rej({ message: "Updates database is empty" });
+          else {
+            let last = result.data[result.data.length - 1];
+            db.query(q.Delete(last.ref)).then(res).catch(rej);
+          }
         })
         .catch(rej);
     });
