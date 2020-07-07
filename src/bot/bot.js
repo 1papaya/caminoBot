@@ -81,7 +81,8 @@ const updateStage = new Stage([
       // last pic in photo array is highest resolution
       ctx.wizard.state.photo_id =
         ctx.message.photo[ctx.message.photo.length - 1].file_id;
-      ctx.wizard.state.caption = ctx.message.caption;
+      ctx.wizard.state.caption =
+        "caption" in ctx.message ? ctx.message.caption : "";
 
       return ctx.wizard.next();
     },
