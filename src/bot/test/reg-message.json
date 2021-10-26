@@ -1,0 +1,23 @@
+{
+  "update_id": 0,
+  "message": {
+    "message_id": 190,
+    "from": {
+      "id": 9,
+      "is_bot": false,
+      "first_name": "First",
+      "last_name": "Last",
+      "username": "username",
+      "language_code": "es"
+    },
+    "chat": {
+      "id": 0,
+      "first_name": "First",
+      "last_name": "Last",
+      "username": "username",
+      "type": "private"
+    },
+    "date": 1302949,
+    "text": "Wut"
+  }
+}

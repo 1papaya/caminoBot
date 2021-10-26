@@ -1,0 +1,20 @@
+{
+  "asset_id": "md5",
+  "public_id": "some/id",
+  "version": 1304914,
+  "version_id": "md5",
+  "signature": "md5",
+  "width": 1280,
+  "height": 960,
+  "format": "jpg",
+  "resource_type": "image",
+  "created_at": "2024-05-10T17:34:56Z",
+  "tags": [],
+  "bytes": 302310,
+  "type": "upload",
+  "etag": "md5",
+  "placeholder": false,
+  "url": "http://res.cloudinary.com/yadda.jpg",
+  "secure_url": "https://res.cloudinary.com/yadda.jpg",
+  "original_filename": "file_1"
+}
